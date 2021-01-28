@@ -48,27 +48,23 @@ class StylePredictionNetwork(nn.Cell):
         self._fully_connected_layer_gamma = []
         self._squeeze = ops.Squeeze((1, 2))
         for i in range(0, len(style_vector_depths)):
-            self._fully_connected_layer_beta[i] \
-                = Conv2dReLU(in_channels=bottle_neck_depth, out_channels=style_vector_depths[i], kernel_size=1)
-            self._fully_connected_layer_gamma[i] \
-                = Conv2dReLU(in_channels=bottle_neck_depth, out_channels=style_vector_depths[i], kernel_size=1)
-
+            self._fully_connected_layer_beta.append(
+                Conv2dReLU(in_channels=bottle_neck_depth, out_channels=style_vector_depths[i], kernel_size=1))
+            self._fully_connected_layer_gamma.append(
+                Conv2dReLU(in_channels=bottle_neck_depth, out_channels=style_vector_depths[i], kernel_size=1))
+            self._beta_nets=nn.CellList(self._fully_connected_layer_beta)
+            self._gamma_nets=nn.CellList(self._fully_connected_layer_gamma)
     '''
     参数：
         images: 4D张量，shape(images) = (batch_size, width, height, channel=3)
             为输入的风格画
     '''
 
-    def get_style_embedded_vector(self, *inputs, **kwargs):
-        inception_v3_output = self._inception_v3(inputs)
+    def construct(self, style_img):
+        inception_v3_output = self._inception_v3(style_img)
         reduce_mean = ops.ReduceMean()
         inception_v3_output_reduce_mean = reduce_mean(inception_v3_output, (1, 2))
         bottle_neck_feature = self._fully_connected_layer1(inception_v3_output_reduce_mean)
-        beta = []
-        gamma = []
-        for i in range(0, len(style_vector_depths)):
-            beta[i] = self._fully_connected_layer_beta[i](bottle_neck_feature)
-            beta[i] = self._squeeze(beta[i])
-            gamma[i] = self._fully_connected_layer_gamma[i](bottle_neck_feature)
-            gamma[i] = self._squeeze(gamma[i])
-        return beta, gamma
+        betas=self._beta_nets(bottle_neck_feature)
+        gammas=self._gamma_nets(bottle_neck_feature)
+        return betas, gammas

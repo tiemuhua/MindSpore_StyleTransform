@@ -2,6 +2,6 @@
 运行下面的指令：
 ```bash
 $ cd /path/to/stylization
-$ python try_style_predict.py
+$ python style_prediction_network_test.py
 ```
 

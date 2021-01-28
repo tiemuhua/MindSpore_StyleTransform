@@ -1,13 +1,5 @@
 import inception_v3
 from mindspore import nn, ops
-
-'''
-This class can cast the style pictures into embedded style vector beta and gamma.
-First we will employ a pretrained Inception-v3 architecture to calculate a feature vector with the dimension of 768.
-Then we will apply two fully connected layers on top of the Inception-v3 architecture to predict the final embedding S~.
-transformer StyleNorm
-'''
-
 style_vector_scope_names = [
     'residual/residual1/conv1',
     'residual/residual1/conv2',
@@ -24,85 +16,68 @@ style_vector_scope_names = [
     'expand/conv3/conv']
 style_vector_depths = [128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 64, 32, 3]
 
-"""
-Maps style images to the style embeddings (beta and gamma parameters).
-
-  Args:
-    style_input_: Tensor. Batch of style input images.
-    activation_names: string. 
-        Scope names of the activations of the transformer network which are used to apply style normalization.
-    activation_depths: 
-        Shapes of the activations of the transformer network which are used to apply style normalization.
-    is_training: bool. Is it training phase or not?
-    trainable: bool. Should the parameters be marked as trainable?
-    inception_end_point: string. 
-        Specifies the endpoint to construct the inception_v3 network up to. 
-        This network is part of the style prediction network.
-    style_prediction_bottleneck: int. 
-        Specifies the bottleneck size in the number of parameters of the style embedding.
-    reuse: bool. Whether to reuse model parameters. Defaults to False.
-
-  Returns:
-    Tensor for the output of the style prediction network, 
-    Tensor for the bottleneck of style parameters of the style prediction network.
-"""
-
-
 class StylePredictionNetwork(nn.Cell):
-    ''''''
-    '''
-    参数：
-        bottle_neck_depth: int
-            第一个全连接层的输出特征的深度。默认值为100
-    '''
-
     def __init__(self, bottle_neck_depth=100):
         super(StylePredictionNetwork, self).__init__()
         self._inception_v3 = inception_v3.InceptionV3()
-        self._fully_connected_layer1 = nn.Conv2d(in_channels=3, out_channels=bottle_neck_depth,kernel_size=1)
-        self._fully_connected_layer_beta = {}
-        self._fully_connected_layer_gamma = {}
-        print(len(style_vector_depths))
-        for i in range(0, len(style_vector_depths)):
-            self._fully_connected_layer_beta[i] \
-                = nn.Conv2d(in_channels=bottle_neck_depth, out_channels=style_vector_depths[i],kernel_size=1)
-            self._fully_connected_layer_gamma[i] \
-                = nn.Conv2d(in_channels=bottle_neck_depth, out_channels=style_vector_depths[i],kernel_size=1)
+        self.reduce_mean = ops.ReduceMean(keep_dims=True)
+        self.bottle_neck = nn.Conv2d(in_channels=768, out_channels=bottle_neck_depth,kernel_size=1)
+        self.beta1 = nn.Conv2d(in_channels=bottle_neck_depth, out_channels=128,kernel_size=1)
+        self.gamma1 = nn.Conv2d(in_channels=bottle_neck_depth, out_channels=128,kernel_size=1)
+        self.beta2 = nn.Conv2d(in_channels=bottle_neck_depth, out_channels=128,kernel_size=1)
+        self.gamma2 = nn.Conv2d(in_channels=bottle_neck_depth, out_channels=128,kernel_size=1)
+        self.beta3 = nn.Conv2d(in_channels=bottle_neck_depth, out_channels=128,kernel_size=1)
+        self.gamma3 = nn.Conv2d(in_channels=bottle_neck_depth, out_channels=128,kernel_size=1)
+        self.beta4 = nn.Conv2d(in_channels=bottle_neck_depth, out_channels=128,kernel_size=1)
+        self.gamma4 = nn.Conv2d(in_channels=bottle_neck_depth, out_channels=128,kernel_size=1)
+        self.beta5 = nn.Conv2d(in_channels=bottle_neck_depth, out_channels=128,kernel_size=1)
+        self.gamma5 = nn.Conv2d(in_channels=bottle_neck_depth, out_channels=128,kernel_size=1)
+        self.beta6 = nn.Conv2d(in_channels=bottle_neck_depth, out_channels=128,kernel_size=1)
+        self.gamma6 = nn.Conv2d(in_channels=bottle_neck_depth, out_channels=128,kernel_size=1)
+        self.beta7 = nn.Conv2d(in_channels=bottle_neck_depth, out_channels=128,kernel_size=1)
+        self.gamma7 = nn.Conv2d(in_channels=bottle_neck_depth, out_channels=128,kernel_size=1)
+        self.beta8 = nn.Conv2d(in_channels=bottle_neck_depth, out_channels=128,kernel_size=1)
+        self.gamma8 = nn.Conv2d(in_channels=bottle_neck_depth, out_channels=128,kernel_size=1)
+        self.beta9 = nn.Conv2d(in_channels=bottle_neck_depth, out_channels=128,kernel_size=1)
+        self.gamma9 = nn.Conv2d(in_channels=bottle_neck_depth, out_channels=128,kernel_size=1)
+        self.beta10 = nn.Conv2d(in_channels=bottle_neck_depth, out_channels=128,kernel_size=1)
+        self.gamma10 = nn.Conv2d(in_channels=bottle_neck_depth, out_channels=128,kernel_size=1)
+        self.beta11 = nn.Conv2d(in_channels=bottle_neck_depth, out_channels=64,kernel_size=1)
+        self.gamma11 = nn.Conv2d(in_channels=bottle_neck_depth, out_channels=64,kernel_size=1)
+        self.beta12 = nn.Conv2d(in_channels=bottle_neck_depth, out_channels=32,kernel_size=1)
+        self.gamma12 = nn.Conv2d(in_channels=bottle_neck_depth, out_channels=32,kernel_size=1) 
+        self.beta13 = nn.Conv2d(in_channels=bottle_neck_depth, out_channels=3,kernel_size=1)
+        self.gamma13 = nn.Conv2d(in_channels=bottle_neck_depth, out_channels=3,kernel_size=1) 
+    def construct(self, x):
+        x = self._inception_v3(x)
+        x = self.reduce_mean(x,(2,3))
+        x = self.bottle_neck(x)
+        beta1=self.beta1(x)
+        gamma1=self.gamma1(x)
+        beta2=self.beta2(x)
+        gamma2=self.gamma2(x)
+        beta3=self.beta3(x)
+        gamma3=self.gamma3(x)
+        beta4=self.beta4(x)
+        gamma4=self.gamma4(x)
+        beta5=self.beta5(x)
+        gamma5=self.gamma5(x)
+        beta6=self.beta6(x)
+        gamma6=self.gamma6(x)
+        beta7=self.beta7(x)
+        gamma7=self.gamma7(x)
+        beta8=self.beta8(x)
+        gamma8=self.gamma8(x)
+        beta9=self.beta9(x)
+        gamma9=self.gamma9(x)
+        beta10=self.beta10(x)
+        gamma10=self.gamma10(x)
+        beta11=self.beta11(x)
+        gamma11=self.gamma11(x)
+        beta12=self.beta12(x)
+        gamma12=self.gamma12(x)
+        beta13=self.beta13(x)
+        gamma13=self.gamma13(x)
+        return [beta1,beta2,beta3,beta4,beta5,beta6,beta7,beta8,beta9,beta10,beta11,beta12,beta13],[gamma1,gamma2,gamma3,gamma4,gamma5,gamma6,gamma7,gamma8,gamma9,gamma10,gamma11,gamma12,gamma13]
 
-    '''
-    参数：
-        images: 4D张量，shape(images) = (batch_size, width, height, channel=3)
-            为输入的风格画
-    '''
-
-    def construct(self, *inputs, **kwargs):
-        inception_v3_output = self._inception_v3(inputs)
-        reduce_mean = ops.ReduceMean()
-        inception_v3_output_reduce_mean = reduce_mean(inception_v3_output, (1, 2))
-        bottle_neck_feature = self._fully_connected_layer1(inception_v3_output_reduce_mean)
-        print(bottle_neck_feature)
-        beta = []
-        gamma = []
-        '''
-        for i in range(0, len(style_vector_depths)):
-            beta[i] = self._fully_connected_layer_beta[i](bottle_neck_feature)
-            gamma[i] = self._fully_connected_layer_gamma[i](bottle_neck_feature)
-            '''
-        
-        #return beta, gamma
-        return 0
-
-from mindspore import Tensor
-import mindspore
-import file_operations as f
-import numpy as np
-from mindspore import context
-context.set_context(mode=context.GRAPH_MODE, device_target='CPU')
-#x=Tensor(f.load_np_image('eiffel_tower.jpg'),dtype=mindspore.int32)
-x=Tensor(np.ones([1,3,3,3]),mindspore.float32)
-nett = nn.Conv2d(3, 2, 3, has_bias=False, weight_init='normal')
-y=nett(x)
-print(x.dtype)
-net=StylePredictionNetwork()
-x=net(x)
 

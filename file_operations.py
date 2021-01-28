@@ -16,6 +16,8 @@ def load_np_image(file_path):
      dtype=unit8
   '''
   im = np.array(Image.open(file_path))
+  im=np.swapaxes(im,1,2)
+  im=np.swapaxes(im,0,1)
   im=np.reshape(im,(1,im.shape[0],im.shape[1],im.shape[2]))
   return im
 '''

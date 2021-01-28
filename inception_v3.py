@@ -238,6 +238,7 @@ class InceptionV3(nn.Cell):
         x = self.Conv2d_3b(x)
         x = self.Conv2d_4a(x)
         x = self.max_pool2(x)
+        print("2222222222222")
         x = self.Mixed_5b(x)
         x = self.Mixed_5c(x)
         x = self.Mixed_5d(x)
@@ -246,16 +247,25 @@ class InceptionV3(nn.Cell):
         x = self.Mixed_6c(x)
         x = self.Mixed_6d(x)
         x = self.Mixed_6e(x)
-        if self.is_training:
-            aux_logits = self.aux_logits(x)
-        else:
-            aux_logits = None
+        return x
+'''
+        print("33333333333333333")
         x = self.Mixed_7a(x)
         x = self.Mixed_7b(x)
         x = self.Mixed_7c(x)
+        return x
+
         if not self.include_top:
             return x
         logits = self.logits(x)
         if self.is_training:
             return logits, aux_logits
         return logits
+'''
+'''
+after 6e
+        if self.is_training:
+            aux_logits = self.aux_logits(x)
+        else:
+            aux_logits = None
+'''

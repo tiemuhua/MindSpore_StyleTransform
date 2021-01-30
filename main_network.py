@@ -10,9 +10,7 @@ class MainNetwork(nn.Cell):
         self._style_prediction_network = StylePredictionNetwork()
         self._style_transform_network = StyleTransformNetwork()
 
-    def construct(self, *inputs, **kwargs):
-        content_img = inputs[0]
-        style_img = inputs[1]
+    def construct(self, content_img, style_img):
         # TODO beta and gamma should be merged into one tensor in nn.Cell.__call__ function
         beta, gamma = self._style_prediction_network(style_img)
         generated_img = self._style_transform_network(content_img, beta, gamma)

@@ -11,6 +11,8 @@ class Conv2dReLU(nn.Cell):
         self._relu = nn.ReLU()
 
     def construct(self, x):
+        print("construct x")
+        print(x)
         x = self._conv(x)
         x = self._bn(x)
         x = self._relu(x)

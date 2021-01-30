@@ -26,6 +26,8 @@ style_vector_scope_names = [
     'expand/conv3/conv']
 style_vector_depths = [128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 64, 32, 3]
 
+inception_v3_output_channel = 768
+
 """
 Maps style images to the style embeddings (beta and gamma parameters).
 This class will be called in file "main_network.py" class "MainNetwork"
@@ -43,7 +45,8 @@ class StylePredictionNetwork(nn.Cell):
     def __init__(self, bottle_neck_depth=100):
         super(StylePredictionNetwork, self).__init__()
         self._inception_v3 = inception_v3.InceptionV3()
-        self._fully_connected_layer1 = Conv2dReLU(in_channels=3, out_channels=bottle_neck_depth, kernel_size=1)
+        self._fully_connected_layer1 = Conv2dReLU(in_channels=inception_v3_output_channel,
+                                                  out_channels=bottle_neck_depth, kernel_size=1)
         self._fully_connected_layer_beta = []
         self._fully_connected_layer_gamma = []
         self._squeeze = ops.Squeeze((1, 2))
@@ -52,8 +55,6 @@ class StylePredictionNetwork(nn.Cell):
                 Conv2dReLU(in_channels=bottle_neck_depth, out_channels=style_vector_depths[i], kernel_size=1))
             self._fully_connected_layer_gamma.append(
                 Conv2dReLU(in_channels=bottle_neck_depth, out_channels=style_vector_depths[i], kernel_size=1))
-            self._beta_nets = nn.CellList(self._fully_connected_layer_beta)
-            self._gamma_nets = nn.CellList(self._fully_connected_layer_gamma)
 
     '''
     参数：
@@ -63,9 +64,12 @@ class StylePredictionNetwork(nn.Cell):
 
     def construct(self, style_img):
         inception_v3_output = self._inception_v3(style_img)
-        reduce_mean = ops.ReduceMean()
-        inception_v3_output_reduce_mean = reduce_mean(inception_v3_output, (1, 2))
+        reduce_mean = ops.ReduceMean(keep_dims=True)
+        inception_v3_output_reduce_mean = reduce_mean(inception_v3_output, (2, 3))
         bottle_neck_feature = self._fully_connected_layer1(inception_v3_output_reduce_mean)
-        betas = self._beta_nets(bottle_neck_feature)
-        gammas = self._gamma_nets(bottle_neck_feature)
+        betas = []
+        gammas = []
+        for i in range(0, len(self._fully_connected_layer_beta)):
+            betas.append(self._fully_connected_layer_beta[i](bottle_neck_feature))
+            gammas.append(self._fully_connected_layer_gamma[i](bottle_neck_feature))
         return betas, gammas

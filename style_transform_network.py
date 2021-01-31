@@ -1,3 +1,5 @@
+import math
+
 from mindspore import nn, ops
 
 from conv2d import Conv2d
@@ -31,9 +33,9 @@ transform_network_depths = [128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 64
 class StyleTransformNetwork(nn.Cell):
     def __init__(self):
         super(StyleTransformNetwork, self).__init__()
-        self._conv0 = Conv2d(in_channels=1, out_channels=32, kernel_size=9, stride=1)
+        self._conv0 = Conv2d(in_channels=3, out_channels=32, kernel_size=9, stride=1)
         self._conv1 = Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=2)
-        self._conv2 = Conv2d(in_channels=64, out_channels=128, kernel_size=4, stride=2)
+        self._conv2 = Conv2d(in_channels=64, out_channels=128, kernel_size=3, stride=2)
         self._residual0 = _ResidualBlock()
         self._residual1 = _ResidualBlock()
         self._residual2 = _ResidualBlock()
@@ -41,7 +43,7 @@ class StyleTransformNetwork(nn.Cell):
         self._residual4 = _ResidualBlock()
         self._up_sampling0 = _UpSampling(in_channels=128, out_channels=64, kernel_size=3, stride=2)
         self._up_sampling1 = _UpSampling(in_channels=64, out_channels=32, kernel_size=3, stride=2)
-        self._up_sampling2 = _UpSampling(in_channels=32, out_channels=3, kernel_size=9, stride=9,
+        self._up_sampling2 = _UpSampling(in_channels=32, out_channels=3, kernel_size=9, stride=1,
                                          activation_fn="sigmoid")
 
     def construct(self, x, beta, gamma):
@@ -59,14 +61,17 @@ class StyleTransformNetwork(nn.Cell):
         return x
 
 
-# TODO how to do the normalization????
-class _DynamicNormalize(nn.Cell):
-    def __init__(self, out_channels, eps, momentum):
-        super(_DynamicNormalize, self).__init__()
-        a=nn.BatchNorm2d
+class _DynamicInstanceNorm(nn.Cell):
+    def __init__(self, eps):
+        super(_DynamicInstanceNorm, self).__init__()
+        self.moments = nn.Moments(axis=(2, 3), keep_dims=True)
+        self.sqrt = ops.Sqrt()
+        self.eps = eps
 
     def construct(self, x, beta, gamma):
-        pass
+        mean, variance = self.moments(x)
+        temp = (x - mean) / self.sqrt(variance + self.eps)
+        return temp * gamma + beta
 
 
 '''
@@ -78,10 +83,10 @@ class _ResidualBlock(nn.Cell):
     def __init__(self, activation_fn="relu"):
         super(_ResidualBlock, self).__init__()
         # TODO residual_block_depth depends on input image size
-        self.conv2d0 = _PadConv2dBatchNorm(residual_block_depth, residual_block_depth, residual_block_kernel_size, 1,
-                                           activation_fn)
-        self.conv2d1 = _PadConv2dBatchNorm(residual_block_depth, residual_block_depth, residual_block_kernel_size, 1,
-                                           activation_fn)
+        self.conv2d0 = _PadConv2dInstanceNorm(residual_block_depth, residual_block_depth, residual_block_kernel_size, 1,
+                                              activation_fn)
+        self.conv2d1 = _PadConv2dInstanceNorm(residual_block_depth, residual_block_depth, residual_block_kernel_size, 1,
+                                              activation_fn)
 
     def construct(self, x, beta0, gamma0, beta1, gamma1):
         return self.conv2d1(self.conv2d0(x, beta0, gamma0), beta1, gamma1) + x
@@ -95,7 +100,7 @@ This class is called in class StyleTransformNetwork
 class _UpSampling(nn.Cell):
     def __init__(self, in_channels, out_channels, kernel_size, stride, activation_fn="relu"):
         super(_UpSampling, self).__init__()
-        self._conv2d = _PadConv2dBatchNorm(in_channels, out_channels, kernel_size, 1, activation_fn)
+        self._conv2d = _PadConv2dInstanceNorm(in_channels, out_channels, kernel_size, 1, activation_fn)
         self._stride = stride
 
     def construct(self, x, beta, gamma):
@@ -116,13 +121,13 @@ class _UpSampling(nn.Cell):
 '''
 
 
-class _PadConv2dBatchNorm(nn.Cell):
+class _PadConv2dInstanceNorm(nn.Cell):
     def __init__(self, in_channels, out_channels, kernel_size, stride, activation_fn="relu"):
-        super(_PadConv2dBatchNorm, self).__init__()
+        super(_PadConv2dInstanceNorm, self).__init__()
         padding = kernel_size // 2
         self._pad = nn.Pad(paddings=((0, 0), (padding, padding), (padding, padding), (0, 0)), mode="REFLECT")
         self._conv2d = nn.Conv2d(in_channels, out_channels, kernel_size, stride)
-        self._normalize=_DynamicNormalize()
+        self._normalize = _DynamicInstanceNorm()
         if activation_fn == "relu":
             self._activation_fn = nn.ReLU()
         else:

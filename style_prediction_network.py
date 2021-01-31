@@ -1,7 +1,8 @@
 from mindspore import nn, ops
 
 import inception_v3
-from conv2d import Conv2dReLU
+from conv2d import Conv2d
+from style_transform_network import transform_network_depths
 
 '''
 This class can cast the style pictures into embedded style vector beta and gamma.
@@ -9,22 +10,6 @@ First we will employ a pretrained Inception-v3 architecture to calculate a featu
 Then we will apply two fully connected layers on top of the Inception-v3 architecture to predict the final embedding S~.
 transformer StyleNorm
 '''
-
-style_vector_scope_names = [
-    'residual/residual1/conv1',
-    'residual/residual1/conv2',
-    'residual/residual2/conv1',
-    'residual/residual2/conv2',
-    'residual/residual3/conv1',
-    'residual/residual3/conv2',
-    'residual/residual4/conv1',
-    'residual/residual4/conv2',
-    'residual/residual5/conv1',
-    'residual/residual5/conv2',
-    'expand/conv1/conv',
-    'expand/conv2/conv',
-    'expand/conv3/conv']
-style_vector_depths = [128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 64, 32, 3]
 
 inception_v3_output_channel = 768
 
@@ -45,16 +30,16 @@ class StylePredictionNetwork(nn.Cell):
     def __init__(self, bottle_neck_depth=100):
         super(StylePredictionNetwork, self).__init__()
         self._inception_v3 = inception_v3.InceptionV3()
-        self._fully_connected_layer1 = Conv2dReLU(in_channels=inception_v3_output_channel,
-                                                  out_channels=bottle_neck_depth, kernel_size=1)
+        self._fully_connected_layer1 = Conv2d(in_channels=inception_v3_output_channel,
+                                              out_channels=bottle_neck_depth, kernel_size=1)
         self._fully_connected_layer_beta = []
         self._fully_connected_layer_gamma = []
-        self._squeeze = ops.Squeeze((1, 2))
-        for i in range(0, len(style_vector_depths)):
+        self._squeeze = ops.Squeeze((2, 3))  # NCHW
+        for depth in transform_network_depths:
             self._fully_connected_layer_beta.append(
-                Conv2dReLU(in_channels=bottle_neck_depth, out_channels=style_vector_depths[i], kernel_size=1))
+                Conv2d(in_channels=bottle_neck_depth, out_channels=depth, kernel_size=1))
             self._fully_connected_layer_gamma.append(
-                Conv2dReLU(in_channels=bottle_neck_depth, out_channels=style_vector_depths[i], kernel_size=1))
+                Conv2d(in_channels=bottle_neck_depth, out_channels=depth, kernel_size=1))
 
     '''
     参数：
@@ -66,10 +51,12 @@ class StylePredictionNetwork(nn.Cell):
         inception_v3_output = self._inception_v3(style_img)
         reduce_mean = ops.ReduceMean(keep_dims=True)
         inception_v3_output_reduce_mean = reduce_mean(inception_v3_output, (2, 3))
+        print("inception_v3_output_reduce_mean.shape")
+        print(inception_v3_output_reduce_mean.shape)
         bottle_neck_feature = self._fully_connected_layer1(inception_v3_output_reduce_mean)
         betas = []
         gammas = []
         for i in range(0, len(self._fully_connected_layer_beta)):
-            betas.append(self._fully_connected_layer_beta[i](bottle_neck_feature))
-            gammas.append(self._fully_connected_layer_gamma[i](bottle_neck_feature))
+            betas.append(self._squeeze(self._fully_connected_layer_beta[i](bottle_neck_feature)))
+            gammas.append(self._squeeze(self._fully_connected_layer_gamma[i](bottle_neck_feature)))
         return betas, gammas

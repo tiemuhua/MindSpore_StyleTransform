@@ -34,7 +34,6 @@ class StylePredictionNetwork(nn.Cell):
                                               out_channels=bottle_neck_depth, kernel_size=1)
         self._fully_connected_layer_beta = []
         self._fully_connected_layer_gamma = []
-        self._squeeze = ops.Squeeze((2, 3))  # NCHW
         for depth in transform_network_depths:
             self._fully_connected_layer_beta.append(
                 Conv2d(in_channels=bottle_neck_depth, out_channels=depth, kernel_size=1))
@@ -57,6 +56,6 @@ class StylePredictionNetwork(nn.Cell):
         betas = []
         gammas = []
         for i in range(0, len(self._fully_connected_layer_beta)):
-            betas.append(self._squeeze(self._fully_connected_layer_beta[i](bottle_neck_feature)))
-            gammas.append(self._squeeze(self._fully_connected_layer_gamma[i](bottle_neck_feature)))
+            betas.append(self._fully_connected_layer_beta[i](bottle_neck_feature))
+            gammas.append(self._fully_connected_layer_gamma[i](bottle_neck_feature))
         return betas, gammas

@@ -3,7 +3,7 @@ import numpy as np
 from mindspore import dataset as ds
 from mindspore import nn
 from mindspore.train.callback import ModelCheckpoint, CheckpointConfig
-
+import file_operations
 
 class Loss(nn.loss.loss._Loss):
     def __init__(self):
@@ -32,11 +32,8 @@ class Net(nn.Cell):
 
 
 class IterDatasetGenerator:
-    def __init__(self):
-        np.random.seed(58)
-        self.__index = 0
-        height = 5
-        weight = 2
+    def __init__(self, dataset_path):
+        file_operations.load_np_image("")
         self.__data = np.random.rand(height, weight)
         self.__label = np.random.rand(height, weight)
 

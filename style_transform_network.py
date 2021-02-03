@@ -1,9 +1,7 @@
 import math
-
 from mindspore import nn, ops
-
 from conv2d import Conv2d
-
+from parameters import Parameter
 '''
 This class takes style embedded vector and content picture as input, output generated image.
 This class will be called in file "main_network.py" class "MainNetwork"
@@ -62,15 +60,15 @@ class StyleTransformNetwork(nn.Cell):
 
 
 class _DynamicInstanceNorm(nn.Cell):
-    def __init__(self, eps):
+    def __init__(self):
         super(_DynamicInstanceNorm, self).__init__()
-        self.moments = nn.Moments(axis=(2, 3), keep_dims=True)
-        self.sqrt = ops.Sqrt()
-        self.eps = eps
+        self._moments = nn.Moments(axis=(2, 3), keep_dims=True)
+        self._sqrt = ops.Sqrt()
+        self._eps = Parameter.NormalizeParams.eps
 
     def construct(self, x, beta, gamma):
-        mean, variance = self.moments(x)
-        temp = (x - mean) / self.sqrt(variance + self.eps)
+        mean, variance = self._moments(x)
+        temp = (x - mean) / self._sqrt(variance + self._eps)
         return temp * gamma + beta
 
 

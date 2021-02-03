@@ -1,15 +1,27 @@
-import mindspore as ms
-from mindspore import dataset as ds
-from mindspore import Tensor, nn, ops
 import os
+import cv2
 import numpy as np
+from mindspore import dataset as ds, Tensor
+from parameters import Parameter
 
 
 class _DataSetGenerator:
     def __init__(self, dataset_path):
-        self._content_img_np_NHWC = np.random.rand(2, 3, 4)
+        filenames = os.listdir(dataset_path + '/style')
+        file_nums = len(filenames)
+        images_np = np.ones(2, file_nums, Parameter.DataParams.height, Parameter.DataParams.width, 3)
+        for i in range(0, file_nums):
+            img = cv2.imread(dataset_path + '/style/' + filenames[i])
+            images_np[0, i, :, :, :] = img
+        filenames = os.listdir(dataset_path + '/content')
+        file_nums = len(filenames)
+        for i in range(0, file_nums):
+            img = cv2.imread(dataset_path + '/content/' + filenames[i])
+            images_np[1, i, :, :, :] = img
+        self._images_tensor = Tensor(images_np)
 
     def __getitem__(self, index):
+        return
         pass
 
     def __len__(self):

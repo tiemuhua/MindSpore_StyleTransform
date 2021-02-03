@@ -20,3 +20,11 @@ class Parameter:
 
     class TransformParams:
         pass
+
+    class DataParams:
+        height = 326
+        width = 256
+        batch_size = 5
+
+    class NormalizeParams:
+        eps = 1e-5

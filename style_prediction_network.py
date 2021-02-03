@@ -48,8 +48,10 @@ class StylePredictionNetwork(nn.Cell):
 
     def construct(self, style_img):
         inception_v3_output = self._inception_v3(style_img)
+        print("inception v3 output finished")
         reduce_mean = ops.ReduceMean(keep_dims=True)
         inception_v3_output_reduce_mean = reduce_mean(inception_v3_output, (2, 3))
+        print("reduce mean finished")
         print("inception_v3_output_reduce_mean.shape")
         print(inception_v3_output_reduce_mean.shape)
         bottle_neck_feature = self._fully_connected_layer1(inception_v3_output_reduce_mean)

@@ -15,6 +15,8 @@ class Conv2d(nn.Cell):
             self._activation_fn = nn.Sigmoid()
 
     def construct(self, x):
+        print("Conv2d input")
+        print(x)
         return self._activation_fn(self._bn(self._conv(x)))
 
 

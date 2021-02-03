@@ -2,6 +2,7 @@ import math
 from mindspore import nn, ops
 from conv2d import Conv2d
 from parameters import Parameter
+
 '''
 This class takes style embedded vector and content picture as input, output generated image.
 This class will be called in file "main_network.py" class "MainNetwork"
@@ -45,17 +46,22 @@ class StyleTransformNetwork(nn.Cell):
                                          activation_fn="sigmoid")
 
     def construct(self, x, beta, gamma):
+        print("style transform network input shape")
+        print(x.shape)
         x = self._conv0(x)
         x = self._conv1(x)
         x = self._conv2(x)
+        print("StyleTransformNetwork conv finished")
         x = self._residual0(x, beta0=beta[0], gamma0=gamma[0], beta1=beta[1], gamma1=gamma[1])
         x = self._residual1(x, beta0=beta[2], gamma0=gamma[2], beta1=beta[3], gamma1=gamma[3])
         x = self._residual2(x, beta0=beta[4], gamma0=gamma[4], beta1=beta[5], gamma1=gamma[5])
         x = self._residual3(x, beta0=beta[6], gamma0=gamma[6], beta1=beta[7], gamma1=gamma[7])
         x = self._residual4(x, beta0=beta[8], gamma0=gamma[8], beta1=beta[9], gamma1=gamma[9])
+        print("StyleTransformNetwork residual finished")
         x = self._up_sampling0(x, beta=beta[10], gamma=gamma[10])
         x = self._up_sampling1(x, beta=beta[11], gamma=gamma[11])
         x = self._up_sampling2(x, beta=beta[12], gamma=gamma[12])
+        print("StyleTransformNetwork up sampling finished")
         return x
 
 
@@ -80,13 +86,14 @@ This class is called in class StyleTransformNetwork
 class _ResidualBlock(nn.Cell):
     def __init__(self, activation_fn="relu"):
         super(_ResidualBlock, self).__init__()
-        # TODO residual_block_depth depends on input image size
         self.conv2d0 = _PadConv2dInstanceNorm(residual_block_depth, residual_block_depth, residual_block_kernel_size, 1,
                                               activation_fn)
         self.conv2d1 = _PadConv2dInstanceNorm(residual_block_depth, residual_block_depth, residual_block_kernel_size, 1,
                                               activation_fn)
 
     def construct(self, x, beta0, gamma0, beta1, gamma1):
+        print("residual network input size")
+        print(x.shape)
         return self.conv2d1(self.conv2d0(x, beta0, gamma0), beta1, gamma1) + x
 
 
@@ -123,8 +130,8 @@ class _PadConv2dInstanceNorm(nn.Cell):
     def __init__(self, in_channels, out_channels, kernel_size, stride, activation_fn="relu"):
         super(_PadConv2dInstanceNorm, self).__init__()
         padding = kernel_size // 2
-        self._pad = nn.Pad(paddings=((0, 0), (padding, padding), (padding, padding), (0, 0)), mode="REFLECT")
-        self._conv2d = nn.Conv2d(in_channels, out_channels, kernel_size, stride)
+        self._pad = nn.Pad(paddings=((0, 0), (0, 0), (padding, padding), (padding, padding)), mode="REFLECT")
+        self._conv2d = nn.Conv2d(in_channels, out_channels, kernel_size, stride, pad_mode="valid")
         self._normalize = _DynamicInstanceNorm()
         if activation_fn == "relu":
             self._activation_fn = nn.ReLU()
@@ -132,4 +139,18 @@ class _PadConv2dInstanceNorm(nn.Cell):
             self._activation_fn = nn.Sigmoid()
 
     def construct(self, x, beta, gamma):
-        return self._activation_fn(self._normalize(self._conv2d(self._pad(x))))
+        print("_PadConv2dInstanceNorm")
+        print("input shape")
+        print(x.shape)
+        pad_result = self._pad(x)
+        print("pad shape")
+        print(pad_result.shape)
+        conv_result = self._conv2d(pad_result)
+        print("conv kernel size")
+        print(self._conv2d.kernel_size)
+        print("conv shape")
+        print(conv_result.shape)
+        normalize_result = self._normalize(conv_result, beta, gamma)
+        print("normalize shape")
+        print(normalize_result.shape)
+        return self._activation_fn(normalize_result)
